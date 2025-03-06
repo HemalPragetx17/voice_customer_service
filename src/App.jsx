@@ -1,4 +1,3 @@
-import './App.css'
 import VoiceAssistant from './VoiceAssistant'
 
 function App() {

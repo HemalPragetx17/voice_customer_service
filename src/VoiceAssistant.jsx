@@ -1,14 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+// Right Now I'm using static responses, but you can replace this with an API call
+const assistantResponses = [
+    "I'm happy to help with that. What else would you like to know?",
+    "That's a great question. Let me think about that for a moment.",
+    "I understand what you're asking. Here's what I can tell you.",
+    "Thanks for sharing that information with me.",
+    "I appreciate your patience. Is there anything else I can assist you with?",
+    "That's an interesting point. Let me respond to that.",
+    "I'm here to help. Please continue.",
+    "I've noted your request. Let me provide some information about that.",
+    "That's a common question I receive. Here's what you should know.",
+    "I'm processing your request. Thank you for being specific."
+];
+
 const VoiceAssistant = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [currentUserInput, setCurrentUserInput] = useState('');
     const recognitionRef = useRef(null);
+    const conversationRef = useRef(null);
 
     useEffect(() => {
-        // Check for browser support of the Web Speech API
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        console.log("🚀 ~ useEffect ~ SpeechRecognition:", SpeechRecognition)
         if (!SpeechRecognition) {
             alert("Your browser does not support speech recognition.");
             return;
@@ -16,101 +31,153 @@ const VoiceAssistant = () => {
 
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
-        recognition.interimResults = false;
+        recognition.interimResults = true;
+        recognition.continuous = true;
         recognition.maxAlternatives = 1;
 
-        // On successful speech recognition result
-        recognition.onresult = async (event) => {
-            const userText = event.results[0][0].transcript;
-            setTranscript(prev => [...prev, { sender: 'user', text: userText }]);
+        recognition.onresult = (event) => {
+            const results = event.results;
+            const latestResult = results[results.length - 1];
 
-            // Call the backend API with the recognized text
-            try {
-                const response = await fetch('https://bankingcsapi.techvantage.ai/get_question', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: userText })
-                });
-                const data = await response.json();
-                // Assuming API returns { answer: '...' }
-                if (data.answer) {
-                    setTranscript(prev => [...prev, { sender: 'assistant', text: data.answer }]);
-                    // Convert assistant response to speech
-                    const utterance = new SpeechSynthesisUtterance(data.answer);
+            if (!latestResult.isFinal) {
+                const interimTranscript = latestResult[0].transcript;
+                setCurrentUserInput(interimTranscript);
+            } else {
+                const finalTranscript = latestResult[0].transcript;
+                setCurrentUserInput('');
+                setTranscript(prev => [...prev, { sender: 'user', text: finalTranscript }]);
+
+                setIsLoading(true);
+
+                setTimeout(() => {
+                    const randomIndex = Math.floor(Math.random() * assistantResponses.length);
+                    const assistantResponse = assistantResponses[randomIndex];
+
+                    setTranscript(prev => [...prev, { sender: 'assistant', text: assistantResponse }]);
+                    setIsLoading(false);
+
+                    const utterance = new SpeechSynthesisUtterance(assistantResponse);
+
                     window.speechSynthesis.speak(utterance);
-                } else {
-                    setTranscript(prev => [...prev, { sender: 'assistant', text: 'Sorry, I did not understand that.' }]);
-                }
-            } catch (error) {
-                console.error("Error calling get_question API:", error);
-                setTranscript(prev => [...prev, { sender: 'assistant', text: 'Error processing your request.' }]);
+                }, 1000 + Math.random() * 1000);
             }
         };
 
-        // Handle errors during speech recognition
         recognition.onerror = (event) => {
             console.error("Speech recognition error:", event.error);
-            setTranscript(prev => [...prev, { sender: 'assistant', text: `Speech recognition error: ${event.error}` }]);
+            setTranscript(prev => [...prev, { sender: 'assistant', text: "Your browser does not support microphone access" }]);
+            setIsLoading(false);
+        };
+
+        recognition.onend = () => {
+            if (isRecording) {
+                recognition.start();
+            }
         };
 
         recognitionRef.current = recognition;
-    }, []);
+    }, [isRecording]);
 
-    // Start the conversation (start speech recognition)
+    useEffect(() => {
+        if (conversationRef.current) {
+            conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
+        }
+    }, [transcript, currentUserInput, isLoading]);
+
     const startCall = () => {
         if (recognitionRef.current) {
             setIsRecording(true);
             recognitionRef.current.start();
+            setTranscript(prev => [...prev, { sender: 'system', text: 'Connected' }]);
         }
     };
 
-    // End the conversation, stop speech recognition, and notify backend
-    const hangUp = async () => {
+    const hangUp = () => {
         if (recognitionRef.current && isRecording) {
             recognitionRef.current.stop();
             setIsRecording(false);
-        }
-        // Call the disconnect API endpoint
-        try {
-            await fetch('https://bankingcsapi.techvantage.ai/disconnect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ disconnect: true })
-            });
+            window.speechSynthesis.cancel();
+            setCurrentUserInput('');
             setTranscript(prev => [...prev, { sender: 'system', text: 'Disconnected' }]);
-        } catch (error) {
-            console.error("Error calling disconnect API:", error);
-            setTranscript(prev => [...prev, { sender: 'system', text: 'Error disconnecting call' }]);
         }
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-            <h2>Voice Interaction for Customer Service Request</h2>
-            <div
-                style={{
-                    border: '1px solid #ccc',
-                    padding: '10px',
-                    height: '300px',
-                    overflowY: 'auto',
-                    marginBottom: '20px'
-                }}
-            >
-                {transcript.map((entry, index) => (
-                    <div key={index} style={{ marginBottom: '10px' }}>
-                        <strong>
-                            {entry.sender === 'user' ? 'You' : entry.sender === 'assistant' ? 'Assistant' : 'System'}:
-                        </strong> {entry.text}
+        <div className='app'>
+            <div className='container'>
+                <div className='voice-assistant-outer'>
+                    <div className='border-glow'></div>
+                    <div className='voice-assistant'>
+                        <div className='title'>
+                            <h1>Voice Assistant</h1>
+                        </div>
+                        <div className='conversation' ref={conversationRef}>
+                            {transcript?.map((message, index) => (
+                                <div key={index} style={{ marginBottom: '10px' }}>
+                                    {message?.sender === "user" && (
+                                        <div className="user-section">
+                                            <div className="user-message">
+                                                <p>{message.text}</p>
+                                            </div>
+                                            <div className="user-icon">
+                                                U
+                                            </div>
+                                        </div>
+                                    )}
+                                    {message?.sender === "assistant" && (
+                                        <div className="assisant-section">
+                                            <div className="assisant-icon">
+                                                A
+                                            </div>
+                                            <div className="assisant-message">
+                                                <p>{message?.text}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {message?.sender === "system" && (
+                                        <div className="system-message">
+                                            <p>{message.text}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {currentUserInput && (
+                                <div className="user-section">
+                                    <div className="user-message interim">
+                                        <p>{currentUserInput}</p>
+                                    </div>
+                                    <div className="user-icon">
+                                        U
+                                    </div>
+                                </div>
+                            )}
+
+                            {isLoading && (
+                                <div className="assisant-section">
+                                    <div className="assisant-icon">
+                                        A
+                                    </div>
+                                    <div className="assisant-message loading">
+                                        <div className="typing-indicator">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className='controls'>
+                            <button className='call-btn' onClick={startCall} disabled={isRecording}>
+                                Call
+                            </button>
+                            <button className='hangup-btn' onClick={hangUp} disabled={!isRecording}>
+                                Hang Up
+                            </button>
+                        </div>
                     </div>
-                ))}
-            </div>
-            <div>
-                <button onClick={startCall} disabled={isRecording}>
-                    Call
-                </button>
-                <button onClick={hangUp} disabled={!isRecording}>
-                    Hang Up
-                </button>
+                </div>
             </div>
         </div>
     );

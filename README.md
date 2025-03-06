@@ -1,37 +1,89 @@
-# Voice Interaction for Customer Service Request
+# Voice Assistant App
 
-A web application enabling users to interact via voice communication for opening new accounts. The application captures voice input, processes it via backend APIs, and displays a real-time conversation transcript.
+A real-time speech-to-text voice assistant built with React and the Web Speech API.
 
-## Overview
+## Setup Guide
 
-This project implements a voice assistant for customer service requests using the Web Speech API. The assistant:
-- Captures user voice input.
-- Transmits the input to a backend API endpoint for processing.
-- Converts the API’s text response into audible speech.
-- Displays a transcript of the conversation in real time.
+Follow these steps to set up the existing Voice Assistant project on your local machine.
 
-The following backend API endpoints are integrated:
-- **GET Question:** `POST https://bankingcsapi.techvantage.ai/get_question`
-- **Disconnect:** `POST https://bankingcsapi.techvantage.ai/disconnect`
+### Prerequisites
 
-## Features
+Before you begin, make sure you have the following installed on your system:
+- Node.js (v14.0.0 or later)
+- npm (v7.0.0 or later) or yarn (v1.22.0 or later)
 
-- **Voice Input:** Uses the Web Speech API to capture and transcribe user speech.
-- **Voice Output:** Uses the SpeechSynthesis API to speak the assistant’s responses.
-- **Real-Time Transcript:** Displays a running log of the conversation.
-- **Error Handling:** Includes error checking for speech recognition and API calls.
-- **API Integration:** Seamlessly integrates with provided backend endpoints.
+### Step 1: Clone the repository
 
-## Prerequisites
+```bash
+git clone https://github.com/HemalPragetx17/voice_customer_service.git
+cd voice_customer_service
+```
 
-- **Node.js:** Version 14 or later is recommended.
-- **npm or yarn:** To manage dependencies.
-- **Supported Browser:** A browser with Web Speech API support (e.g., Google Chrome).
-- **HTTPS:** Required for accessing the microphone (in production).
+### Step 2: Install dependencies
 
-## Installation
+Install the project dependencies:
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/yourusername/voice-interaction-app.git
-   cd voice-interaction-app
+**Using npm:**
+```bash
+npm install
+```
+
+**Using yarn:**
+```bash
+yarn
+```
+
+### Step 3: Start the development server
+
+Launch the development server to run the application locally:
+
+**Using npm:**
+```bash
+npm run dev
+```
+
+**Using yarn:**
+```bash
+yarn dev
+```
+
+The application should now be running at `http://localhost:5173` (or another port if 5173 is already in use).
+
+### Step 4: Access the application
+
+Open your web browser and navigate to:
+```
+http://localhost:5173
+```
+
+## Browser Compatibility
+
+This app uses the Web Speech API which is supported in:
+- Chrome (desktop & Android)
+- Edge
+- Safari (macOS & iOS)
+- Firefox
+
+Note: Browsers will request permission to use the microphone when you click the "Call" button.
+
+## Building for Production
+
+To create a production build:
+
+**Using npm:**
+```bash
+npm run build
+```
+
+**Using yarn:**
+```bash
+yarn build
+```
+
+The optimized production files will be generated in the `dist` directory.
+
+## Troubleshooting
+
+- **Microphone not working**: Ensure your browser has permission to access the microphone
+- **Speech recognition errors**: Check that your browser supports the Web Speech API
+- **Dependencies installation issues**: Try removing `node_modules` folder and `package-lock.json` (or `yarn.lock`), then reinstall dependencies
